@@ -7,7 +7,7 @@ import pygame
 
 
 class TetrisApp():
-    CELL_SIZE = 50
+    CELL_SIZE = 40
     COLUMNS = 10
     ROWS = 20
     MAXFPS = 30
@@ -54,6 +54,24 @@ class TetrisApp():
         ]
     ]
 
+    SPRITES = [
+        "sprites/block_azure.png",
+        "sprites/block_lemon.png",
+        "sprites/block_magento.png",
+        "sprites/block_neo.png",
+        "sprites/block_strawberry.png",
+        "sprites/block_sunset.png",
+        "sprites/block_teal.png",
+
+        "sprites/shadow_azure.png",
+        "sprites/shadow_lemon.png",
+        "sprites/shadow_magento.png",
+        "sprites/shadow_neo.png",
+        "sprites/shadow_strawberry.png",
+        "sprites/shadow_sunset.png",
+        "sprites/shadow_teal.png",
+    ]
+
 
     def __init__(self):
         pygame.init()
@@ -71,6 +89,14 @@ class TetrisApp():
         self.shape_y = 0
         self.split_line = self.CELL_SIZE * self.COLUMNS
         self.next_shape = random.choice(self.TETRIS_SHAPES)
+        self.images = []
+        for sprite_path in self.SPRITES:
+            self.images.append(
+                pygame.transform.scale(
+                    pygame.image.load(sprite_path),
+                    (self.CELL_SIZE, self.CELL_SIZE)
+                )
+            )
 
         self.init_game()
 
@@ -150,6 +176,13 @@ class TetrisApp():
 
                     # self.draw_matrix(self.background_grid, 0, 0)
                     self.draw_matrix(self.board, 0, 0, True)
+
+                    # Draw shadow shape
+                    counter_y = self.shape_y
+                    while not self.check_collision(self.shape, self.shape_x, counter_y):
+                        counter_y += 1
+                    self.draw_matrix(self.shape, self.shape_x, counter_y - 1, True, True)
+
                     self.draw_matrix(self.shape, self.shape_x, self.shape_y, True)
                     self.draw_matrix(self.next_shape, self.COLUMNS + 1, 2, True)
 
@@ -199,32 +232,19 @@ class TetrisApp():
             position_y += 50
 
 
-    def draw_matrix(self, matrix, offset_x, offset_y, shape=False):
+    def draw_matrix(self, matrix, offset_x, offset_y, shape=False, shadow_shape=False):
         for matrix_y, row in enumerate(matrix):
             for matrix_x, value in enumerate(row):
                 if value:
                     if shape:
-                        pygame.draw.rect(
-                            self.screen,
-                            (0, 0, 0),
+                        self.screen.blit(
+                            self.images[value - 1 + len(self.images) // 2 if shadow_shape else value - 1],
                             pygame.Rect(
                                 (offset_x + matrix_x) * self.CELL_SIZE,
                                 (offset_y + matrix_y) * self.CELL_SIZE,
                                 self.CELL_SIZE,
                                 self.CELL_SIZE
-                            ),
-                            0
-                        )
-                        pygame.draw.rect(
-                            self.screen,
-                            self.COLORS[value],
-                            pygame.Rect(
-                                (offset_x + matrix_x) * self.CELL_SIZE + 1,
-                                (offset_y + matrix_y) * self.CELL_SIZE + 1,
-                                self.CELL_SIZE - 2,
-                                self.CELL_SIZE - 2
-                            ),
-                            0
+                            )
                         )
                     else:
                         pygame.draw.rect(
