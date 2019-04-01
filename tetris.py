@@ -89,6 +89,7 @@ class TetrisApp():
         self.shape_y = 0
         self.split_line = self.CELL_SIZE * self.COLUMNS
         self.next_shape = random.choice(self.TETRIS_SHAPES)
+
         self.images = []
         for sprite_path in self.SPRITES:
             self.images.append(
@@ -104,6 +105,8 @@ class TetrisApp():
     def init_game(self):
         self.board = [[0] * self.COLUMNS for _ in range(self.ROWS)] + [[1] * self.COLUMNS]
         self.shape = []
+        self.hold_shape = []
+        self.hold_used = False
         self.level = 0
         self.score = 0
         self.lines = 0
@@ -138,14 +141,15 @@ class TetrisApp():
 
     def run(self):
         key_actions = {
-            'ESCAPE':   self.quit,
-            'LEFT':     lambda: self.move_shape(-1),
-            'RIGHT':    lambda: self.move_shape(+1),
-            'DOWN':     self.drop_shape,
-            'UP':       self.rotate_shape,
-            'p':        self.toggle_pause,
-            'SPACE':    self.insta_drop,
-            'RETURN':   self.start_game
+            'ESCAPE' : self.quit,
+            'LEFT'   : lambda: self.move_shape(-1),
+            'RIGHT'  : lambda: self.move_shape(+1),
+            'DOWN'   : self.drop_shape,
+            'UP'     : self.rotate_shape,
+            'p'      : self.toggle_pause,
+            'SPACE'  : self.insta_drop,
+            's'      : self.start_game,
+            'RETURN' : self.save_or_swap_hold_shape
         }
 
         ticks = pygame.time.Clock()
@@ -185,6 +189,7 @@ class TetrisApp():
 
                     self.draw_matrix(self.shape, self.shape_x, self.shape_y, True)
                     self.draw_matrix(self.next_shape, self.COLUMNS + 1, 2, True)
+                    self.draw_matrix(self.hold_shape, self.COLUMNS + 1, 12, True)
 
             pygame.display.update()
 
@@ -274,6 +279,8 @@ class TetrisApp():
 
                 self.add_new_shape()
 
+                self.hold_used = False
+
                 cleared_rows_count = 0
 
                 for row_index, row in enumerate(self.board[:-1]):
@@ -334,6 +341,23 @@ class TetrisApp():
                 if not self.check_collision(new_shape, self.shape_x - len(new_shape[0]), self.shape_y):
                     self.shape_x = self.COLUMNS - len(new_shape[0])
                     self.shape = new_shape
+
+
+    def save_or_swap_hold_shape(self):
+        if not self.hold_shape:
+            self.add_new_shape()
+
+            self.hold_shape = self.shape
+
+            self.hold_used = True
+        else:
+            if not self.hold_used:
+                self.shape, self.hold_shape = self.hold_shape, self.shape
+
+                self.shape_x = int(self.COLUMNS / 2 - len(self.shape[0]) / 2)
+                self.shape_y = 0
+
+                self.hold_used = True
 
 
     def toggle_pause(self):
