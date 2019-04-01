@@ -72,17 +72,21 @@ class TetrisApp():
         "sprites/shadow_teal.png",
     ]
 
+    BACKGROUND_IMAGES = [
+        "sprites/space_background.jpg"
+    ]
+
 
     def __init__(self):
         pygame.init()
         pygame.key.set_repeat(250, 25)
         pygame.event.set_blocked(pygame.MOUSEMOTION)
 
-        self.height = self.CELL_SIZE * self.ROWS
         self.width = self.CELL_SIZE * (self.COLUMNS + 6)
+        self.height = self.CELL_SIZE * self.ROWS
 
         # self.background_grid = [[8 if x % 2 == y % 2 else 0 for x in range(self.COLUMNS)] for y in range(self.ROWS)]
-        self.default_font = pygame.font.Font(None, 50)
+        self.default_font = pygame.font.Font("fonts/divlit.ttf", 35)
         self.paused = False
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.shape_x = 0
@@ -98,6 +102,13 @@ class TetrisApp():
                     (self.CELL_SIZE, self.CELL_SIZE)
                 )
             )
+
+        self.background_image = pygame.image.load(self.BACKGROUND_IMAGES[0])
+        self.background_image = pygame.transform.scale(
+                    pygame.image.load(self.BACKGROUND_IMAGES[0]),
+                    (self.width, self.height)
+                )
+
 
         self.init_game()
 
@@ -155,11 +166,19 @@ class TetrisApp():
         ticks = pygame.time.Clock()
 
         while True:
-            self.screen.fill(self.COLORS[8])
+            self.screen.blit(
+                self.background_image,
+                pygame.Rect(
+                    0,
+                    0,
+                    self.height,
+                    self.width
+                )
+            )
 
             if self.game_over:
                 self.display_message_center(
-                    "Game Over!\nYour score: {}\nPress ENTER to continue".format(self.score)
+                    "Game Over!\nYour score: {}\nPress S to continue".format(self.score)
                 )
             else:
                 if self.paused:
@@ -172,24 +191,66 @@ class TetrisApp():
                         (self.split_line + 1, self.height - 1)
                     )
 
-                    self.display_message(
-                        "Score: {}\n\nLevel: {}\nLines: {}".format(self.score, self.level, self.lines),
-                        self.split_line + self.CELL_SIZE // 2,
-                        self.CELL_SIZE * 5
-                    )
-
+                    # Board
                     # self.draw_matrix(self.background_grid, 0, 0)
                     self.draw_matrix(self.board, 0, 0, True)
 
-                    # Draw shadow shape
+                    # Shadow shape
                     counter_y = self.shape_y
                     while not self.check_collision(self.shape, self.shape_x, counter_y):
                         counter_y += 1
                     self.draw_matrix(self.shape, self.shape_x, counter_y - 1, True, True)
-
+                    # Current shape
                     self.draw_matrix(self.shape, self.shape_x, self.shape_y, True)
-                    self.draw_matrix(self.next_shape, self.COLUMNS + 1, 2, True)
-                    self.draw_matrix(self.hold_shape, self.COLUMNS + 1, 12, True)
+
+                    # Next shape
+                    self.display_message("Next shape:", self.split_line + 25, self.CELL_SIZE)
+                    pygame.draw.rect(
+                        self.screen,
+                        (255, 255, 255),
+                        pygame.Rect(
+                            self.split_line + self.CELL_SIZE // 2,
+                            self.CELL_SIZE * 2,
+                            self.CELL_SIZE * 5,
+                            self.CELL_SIZE * 4
+                        ),
+                        3
+                    )
+                    self.draw_matrix(
+                        self.next_shape,
+                        (7 - len(self.next_shape[0])) / 2 + self.COLUMNS - 0.5,
+                        3,
+                        True
+                    )
+
+                    # Hold shape
+                    self.display_message("Hold shape:", self.split_line + 25, self.CELL_SIZE * 7)
+                    pygame.draw.rect(
+                        self.screen,
+                        (255, 255, 255),
+                        pygame.Rect(
+                            self.split_line + self.CELL_SIZE // 2,
+                            self.CELL_SIZE * 8,
+                            self.CELL_SIZE * 5,
+                            self.CELL_SIZE * 4
+                        ),
+                        3
+                    )
+                    if self.hold_shape:
+                        self.draw_matrix(
+                            self.hold_shape,
+                            (7 - len(self.hold_shape[0])) / 2 + self.COLUMNS - 0.5,
+                            9,
+                            True
+                        )
+
+                    # Score
+                    self.display_message("Score:", self.split_line + 65, self.CELL_SIZE * 13)
+                    self.display_message("{:09d}".format(self.score), self.split_line + 30, self.CELL_SIZE * 14)
+
+                    # Level
+                    self.display_message("Level:", self.split_line + 65, self.CELL_SIZE * 17)
+                    self.display_message(str(self.level), self.split_line + 110, self.CELL_SIZE * 18)
 
             pygame.display.update()
 
@@ -208,7 +269,7 @@ class TetrisApp():
 
     def display_message_center(self, message):
         for line_index, line in enumerate(message.splitlines()):
-            message_image = self.default_font.render(line, True, (255, 255, 255), self.COLORS[8])
+            message_image = self.default_font.render(line, True, (255, 255, 255))
 
             message_image_x, message_image_y = message_image.get_size()
             message_image_x //= 2
@@ -228,8 +289,7 @@ class TetrisApp():
                 self.default_font.render(
                     line,
                     True,
-                    (255, 255, 255),
-                    self.COLORS[8]
+                    (255, 255, 255)
                 ),
                 (position_x, position_y)
             )
@@ -345,13 +405,20 @@ class TetrisApp():
 
     def save_or_swap_hold_shape(self):
         if not self.hold_shape:
-            self.add_new_shape()
+            # TODO: make a new method
+            while self.shape not in self.TETRIS_SHAPES:
+                self.shape = list(map(list, zip(*self.shape[::-1])))
 
             self.hold_shape = self.shape
+
+            self.add_new_shape()
 
             self.hold_used = True
         else:
             if not self.hold_used:
+                while self.shape not in self.TETRIS_SHAPES:
+                    self.shape = list(map(list, zip(*self.shape[::-1])))
+
                 self.shape, self.hold_shape = self.hold_shape, self.shape
 
                 self.shape_x = int(self.COLUMNS / 2 - len(self.shape[0]) / 2)
@@ -370,8 +437,6 @@ class TetrisApp():
 
 
     def quit(self):
-        self.display_message_center("Exiting...")
-        pygame.display.update()
         sys.exit(0)
 
 
