@@ -324,10 +324,16 @@ class TetrisApp():
 
     def rotate_shape(self):
         if not self.game_over and not self.paused:
-            new_shape = list(zip(*self.shape[::-1]))
+            new_shape = list(map(list, zip(*self.shape[::-1])))
 
             if not self.check_collision(new_shape, self.shape_x, self.shape_y):
                 self.shape = new_shape
+
+            # Allow rotate next to right wall
+            if self.shape_x == self.COLUMNS - len(self.shape[0]):
+                if not self.check_collision(new_shape, self.shape_x - len(new_shape[0]), self.shape_y):
+                    self.shape_x = self.COLUMNS - len(new_shape[0])
+                    self.shape = new_shape
 
 
     def toggle_pause(self):
